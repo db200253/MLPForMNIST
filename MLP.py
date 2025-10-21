@@ -50,12 +50,8 @@ class MLP:
             "linear": (linear, derivative_linear)
         }
 
-        self.activations = []
-        for a in activations:
-            self.activations.append(self.activation_funcs[a][0])
-        self.back = []
-        for a in self.activations:
-            self.back.append(self.activation_funcs[a][1])
+        self.activations = [self.activation_funcs[a][0] for a in activations]
+        self.back = [self.activation_funcs[a][1] for a in activations]
 
     def forward(self, x):
         a = x
