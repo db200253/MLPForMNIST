@@ -1,6 +1,7 @@
 import numpy as np
 from tensorflow.keras.datasets import mnist
 from tensorflow.keras.utils import to_categorical
+#from Optimizers.Adam import Adam
 from Optimizers.SGD import SGD
 from MLP import MLP
 import matplotlib.pyplot as plt
@@ -19,8 +20,9 @@ y_test = to_categorical(y_test, 10)
 layers = [784, 512, 256, 128, 64, 32, 10]
 activations = ["relu", "relu", "relu", "relu", "relu", "relu", "softmax"]
 
-optimizer = SGD(learning_rate=0.001)
-model = MLP(epochs=10, tolerance=0.01, layers=layers, activations=activations, learning_rate=0.001, optimizer=optimizer)
+#optimizer = Adam(learning_rate=0.001)
+optimizer = SGD(learning_rate=0.01)
+model = MLP(epochs=25, tolerance=0.01, layers=layers, activations=activations, learning_rate=0.01, optimizer=optimizer)
 model.fit(x_train, y_train, batch_size=32)
 
 y_pred = model.predict(x_test)
@@ -29,7 +31,7 @@ y_test_class = np.argmax(y_test, axis=1)
 accuracy = np.mean(y_pred_class == y_test_class)
 print(f"Test Accuracy: {accuracy * 100:.2f}%")
 
-for i in range(5):
+for i in range(10):
     plt.imshow(x_test[i].reshape(28, 28), cmap='gray')
     plt.title(f"Predicted: {y_pred_class[i]}, Actual: {y_test_class[i]}")
     plt.show()
