@@ -16,8 +16,8 @@ x_test = x_test.reshape(-1, 28 * 28)
 y_train = to_categorical(y_train, 10)
 y_test = to_categorical(y_test, 10)
 
-layers = [784, 64, 10]
-activations = ["relu", "relu", "softmax"]
+layers = [784, 512, 256, 128, 64, 32, 10]
+activations = ["relu", "relu", "relu", "relu", "relu", "relu", "softmax"]
 
 optimizer = SGD(learning_rate=0.001)
 model = MLP(epochs=10, tolerance=0.01, layers=layers, activations=activations, learning_rate=0.001, optimizer=optimizer)
