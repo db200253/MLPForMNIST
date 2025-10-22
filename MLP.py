@@ -41,6 +41,8 @@ class MLP:
             self.coef.append(mat_i)
             vect_i = np.zeros(n_out)
             self.bias.append(vect_i)
+            self.grad_coef.append(np.zeros_like(mat_i))
+            self.grad_bias.append(np.zeros_like(vect_i))
 
         self.activation_funcs = {
             "relu": (relu, derivative_relu),
@@ -53,31 +55,48 @@ class MLP:
         self.activations = [self.activation_funcs[a][0] for a in activations]
         self.back = [self.activation_funcs[a][1] for a in activations]
 
+        self.a_values = []
+        self.z_values = []
+
     def forward(self, x):
+        self.a_values = [x]
+        self.z_values = []
+
         a = x
-        for i in range(len(self.layers) - 1):
-            zi = np.dot(a, self.coef[i]) + self.bias[i]
-            a = self.activations[i](zi)
-        z = np.dot(a, self.coef[-1]) + self.bias[-1]
-        output = self.activations[-1](z)
-        return output
+        for i in range(len(self.coef)):
+            z = np.dot(a, self.coef[i]) + self.bias[i]
+            self.z_values.append(z)
+            a = self.activations[i](z)
+            self.a_values.append(a)
+        return a
 
     def backward(self, y_true, y_pred):
+        m = y_true.shape[0]
         dz = y_pred - y_true
-        for i in range(len(self.layers) - 2, -1, -1):
-            zi = np.dot(dz, self.coef[i].T)
-            dz = dz * self.back[i](zi)
-            gc = np.dot(self.activations[i].T, dz)
-            gb = np.sum(dz, axis=0)
-            self.grad_coef[i] = gc
-            self.grad_bias[i] = gb
+        for i in reversed(range(len(self.coef))):
+            a_prev = self.a_values[i]
+            z = self.z_values[i]
+
+            if self.back[i] is not None:
+                dz *= self.back[i](z)
+
+            self.grad_coef[i] = np.dot(a_prev.T, dz) / m
+            self.grad_bias[i] = np.sum(dz, axis=0) / m
+
+            if i > 0:
+                dz = np.dot(dz, self.coef[i].T)
 
     def fit(self, x, y, batch_size):
         cost = float('inf')
-        permutation = np.random.permutation(len(x))
-        x, y = x[permutation], y[permutation]
         for epoch in range(self.epochs):
             prev_cost = cost
+            permutation = np.random.permutation(len(x))
+            x, y = x[permutation], y[permutation]
+
+            epoch_preds = []
+            epoch_targets = []
+            epoch_costs = []
+
             for start in range(0, len(x), batch_size):
                 end = min(start + batch_size, len(x))
                 x_batch = x[start:end]
@@ -86,7 +105,17 @@ class MLP:
                 cost = loss(y_pred, y_batch)
                 self.backward(y_batch, y_pred)
                 self.optimizer.update([self.coef, self.bias], [self.grad_coef, self.grad_bias])
-            print(f"Epoch {epoch + 1}/{self.epochs}, Loss: {cost}")
+
+                epoch_preds.append(np.argmax(y_pred, axis=1))
+                epoch_targets.append(np.argmax(y_batch, axis=1))
+                epoch_costs.append(cost)
+            all_preds = np.concatenate(epoch_preds)
+            all_targets = np.concatenate(epoch_targets)
+            accuracy = np.mean(all_preds == all_targets)
+            cost = np.mean(epoch_costs)
+
+            print(f"Epoch {epoch + 1}/{self.epochs}, Loss: {cost:.4f}, Accuracy: {accuracy:.2%}")
+
             if prev_cost - cost < self.tolerance:
                 break
 
